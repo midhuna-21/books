@@ -244,54 +244,6 @@ const loginByGoogle = async (req: Request, res: Response) => {
     }
 };
 
-// const loginByGoogle = async (req: Request, res: Response) => {
-//     try {
-//         const { name,email,image } = req.body;
-//         console.log(req.file,'file')
-//         console.log(image,'name')
-//         console.log(email,'email')
-//         let imageKey: string | undefined;
-//         if (image) {
-//             const buffer = await sharp(Buffer.from(image, 'base64')) // Assuming image is base64 encoded
-//                 .resize({ height: 1920, width: 1080, fit: "contain" })
-//                 .toBuffer();
-
-//             imageKey = randomImageName();
-//             const params = {
-//                 Bucket: "bookstore-web-app",
-//                 Key: imageKey,
-//                 Body: buffer,
-//                 ContentType: 'image/jpeg',
-//             };
-//             const command = new PutObjectCommand(params);
-//             try {
-//                 await s3Client.send(command);
-//             } catch (error: any) {
-//                 console.error("Error uploading image:", error);
-//                 return res.status(500).json({ message: "Failed to upload image" });
-//             }
-//         }
-//         const data: User = { name, email, image: imageKey };
-
-//         let user: IUser | null = await userService.getByGmail(email);
-//         if (!user) {
-//             user = await userService.getCreateUserByGoogle(data);
-//         }else{
-//         const userId: string = (user._id as Types.ObjectId).toString();
-//         const { accessToken, refreshToken } = generateTokens(res, {
-//             userId,
-//             userRole: "user",
-//         });
-
-//         console.log(user,'user')
-//         return res.status(200).json({ user, accessToken, refreshToken });
-//     }
-//     } catch (error: any) {
-//         console.log(error.message);
-//         return res.status(500).json({ error: "Internal server error" });
-//     }
-// };
-
 const updateUser = async (req: Request, res: Response) => {
     try {
         const { name, email, phone, address, city, district, state, pincode } =
