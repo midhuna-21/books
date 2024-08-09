@@ -12,7 +12,7 @@ import sharp, { block } from "sharp";
 import {IUser} from '../model/userModel'
 import {Types} from 'mongoose'
 import { generateTokens } from "../utils/jwt/generateToken";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { PutObjectCommand, ObjectCannedACL,S3Client } from "@aws-sdk/client-s3";
 import config from '../config/config'
 import {s3Client} from '../utils/imageFunctions/store'
 
@@ -45,6 +45,7 @@ const addGenre = async (req: Request, res: Response) => {
             Key: image,
             Body: buffer,
             ContentType: req.file.mimetype,
+            ACL: ObjectCannedACL.public_read,
         };
         const command = new PutObjectCommand(params);
 

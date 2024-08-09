@@ -10,6 +10,9 @@ import adminRouter from './routes/adminRoute';
 import config from './config/config';
 import {refreshTokenController} from './controllers/refreshToken'
 import { UserService } from './services/userService';
+import { INotification } from './model/notificationModel';
+import { IUser } from './model/userModel';
+import { IBooks } from './model/bookModel'; 
 
 const userService = new UserService()
 
@@ -39,12 +42,12 @@ app.use(cors
 
 const userSockets = new Map<string, string>();
 io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+    // console.log('A user connected:', socket.id); 
   
     socket.on('register', (userId) => {
       if (userId) {
         userSockets.set(userId, socket.id);
-        console.log(`User ${userId} registered with socket ID: ${socket.id}`);
+
       }
     });
   
@@ -52,31 +55,37 @@ io.on('connection', (socket) => {
       for (const [userId, socketId] of userSockets.entries()) {
         if (socketId === socket.id) {
           userSockets.delete(userId);
-          console.log(`User ${userId} disconnected and socket ID: ${socket.id} removed`);
           break;
         }
       }
     });
   
-    socket.on('requestBook', async (data) => {
+    socket.on('requestBook', async (notification) => {
       try {
-        const { receiverId, userId, bookId, content } = data;
-        const user = await userService.getUserById(userId);
-        const book = await userService.getBook(bookId);
+        const { receiverId, userId, bookId, content } = notification;
+        const receiverSocketId = userSockets.get(receiverId);
+        const user: IUser | null = await userService.getUserById(userId);
+        const book: IBooks | null = await userService.getBookById(bookId);
+        const receiver: IUser | null = await userService.getUserById(receiverId);
+
+        if (!user || !book || !receiver) {
+          console.error('User, book, or receiver not found');
+          return;
+        }
+
         const notificationData = {
-          content,
-          userName: user?.name,
-          userImage: user?.image,
-          bookTitle: book?.bookTitle,
-          bookImage: book?.images,
+          userId: user._id!,
+          receiverId: receiver._id!,
+          bookId: book._id!,
+          userName: user.name!,
+          userImage: user.image!,
+          bookTitle: book.bookTitle!,
+          bookImage: book.images[0]!, 
+          content: content!,
         };
   
-        const receiverSocketId = userSockets.get(receiverId);
-        console.log('Receiver socket ID:', receiverSocketId);
-        
         if (receiverSocketId) {
           io.to(receiverSocketId).emit('notification', notificationData);
-          console.log(`Notification sent to user ${receiverId}`);
         } else {
           console.log(`No active socket found for user ${receiverId}`);
         }
@@ -84,6 +93,33 @@ io.on('connection', (socket) => {
         console.error('Error handling requestBook event:', error);
       }
     });
+
+    // socket.on('requestBook', async (data) => {
+    //   try {
+    //     const { receiverId, userId, bookId,content } = notificationData;
+    //     const user = await userService.getUserById(userId);
+    //     const book = await userService.getBook(bookId);
+    //     const notificationData = {
+    //       content,
+    //       userName: user?.name,
+    //       userImage: user?.image,
+    //       bookTitle: book?.bookTitle,
+    //       bookImage: book?.images,
+    //     };
+  
+    //     const receiverSocketId = userSockets.get(receiverId);
+    //     console.log('Receiver socket ID:', receiverSocketId);
+        
+    //     if (receiverSocketId) {
+    //       io.to(receiverSocketId).emit('notification', notificationData);
+    //       console.log(`Notification sent to user ${receiverId}`);
+    //     } else {
+    //       console.log(`No active socket found for user ${receiverId}`);
+    //     }
+    //   } catch (error) {
+    //     console.error('Error handling requestBook event:', error);
+    //   }
+    // });
   });
 app.use((req, res, next) => {
    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');

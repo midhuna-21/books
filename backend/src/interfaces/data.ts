@@ -1,4 +1,8 @@
+
+import {ObjectId} from 'mongoose';
+
 export interface User {
+   userId?:string;
    name?:string;
    email?:string;
    image?:string;
@@ -11,7 +15,7 @@ export interface User {
    city?:string;
    district?:string;
    state?:string;
-   pincode?:string;
+
 }
 
 export interface Books{
@@ -46,5 +50,12 @@ export type Notification = {
    bookId?:string;
    type:string;
    content?: string;
-   isRead?:boolean;
+   isReject?:boolean;
+   isAccepted?:boolean;
+}
+
+export type ChatRoom = {
+   userId?:ObjectId
+   receiverId?: string;
+
 }

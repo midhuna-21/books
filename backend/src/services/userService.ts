@@ -1,10 +1,13 @@
 import { UserRepository } from "../respository/userRepository";
 import { userData } from "../utils/ReuseFunctions/interface/data";
-import {Books, User} from '../interfaces/data'
+import {Books, ChatRoom, User} from '../interfaces/data'
 import {IUser, user} from '../model/userModel'
 import {IBooks} from '../model/bookModel'
 import {INotification} from '../model/notificationModel'
 import {Notification} from '../interfaces/data'
+import { Types } from "mongoose";
+import { IMessage } from "../model/message";
+import { IChatRoom } from "../model/chatRoom";
 
 const userRepository =new UserRepository()
 
@@ -13,9 +16,18 @@ export class UserService{
         try{
             return await userRepository.createUser(data)
         }catch(error){
-            console.log("Error getByGmail:",error);
+            console.log("Error getUserByGmail:",error);
             throw error
         }
+    } 
+    async getDeleteUserImage(userId:string):Promise<IUser | null>{
+        try{
+            const user = await userRepository.deleteUserImage(userId)
+            return user
+        }catch(error){
+            console.log('Error getDeleteUserImage:',error)
+            throw error
+        } 
     }
     async getUserByEmail(email:string):Promise<IUser | null>{
         try{
@@ -26,11 +38,11 @@ export class UserService{
         }
     }
 
-    async getByGmail(email:string):Promise<IUser | null>{
+    async getUserByGmail(email:string):Promise<IUser | null>{
         try{
             return await userRepository.findByGmail(email)
         }catch(error){
-            console.log("Error getByGmail:",error);
+            console.log("Error getUserByGmail:",error);
             throw error
         }
     }
@@ -80,9 +92,8 @@ export class UserService{
 
     async getUserById(_id:string):Promise<IUser | null>{
         try{
-            const userss = await userRepository.findUserById(_id)
-         
-            return userss
+            return await userRepository.findUserById(_id)
+          
         }catch(error){
             console.log("Error getUserById:",error);
             throw error
@@ -105,19 +116,21 @@ export class UserService{
             throw error
         }
     }
-    async getUpdateUser(user:User):Promise<IUser | null>{
+    async getUpdateUser(userId:string,filteredUser:User):Promise<IUser | null>{
         try{
-            return await userRepository.updateUser(user)
+            console.log(filteredUser,'filteredUser at service')
+            return await userRepository.updateUser(userId,filteredUser)
         }catch(error){
             console.log("Error getUpdateUser:",error);
             throw error
         }
     }
-    async getBook(bookId:string){
+    async getBookById(bookId:string): Promise<IBooks | null> {
         try{
             return await userRepository.findBook(bookId)
         }catch(error:any){
             console.log("Error getBook:",error)
+            throw error
         }
     }
     async getCreateNotification(data:Partial<Notification>):Promise<INotification | null>{
@@ -128,6 +141,7 @@ export class UserService{
             throw error
         }
     }
+
     async   getNotificationsByUserId(userId: string): Promise<INotification[]> {
         try{
             return await userRepository.notificationsByUserId(userId)
@@ -136,6 +150,15 @@ export class UserService{
             throw error
         }
     }
+
+    // async getCreateMessage(data:Partial<Message>):Promise<IMessage| null>{
+    //     try{
+    //         return await userRepository.createMessage(data)
+    //     }catch(error){
+    //         console.log("Error getCreateChat:",error);
+    //         throw error
+    //     }
+    // }
     async getActiveUsers(){
         try{
            return await userRepository.activeUsers()
@@ -145,10 +168,61 @@ export class UserService{
      }
      }
 
+     async getCreateChatRoom(userId:string,receiverId:string):Promise<IChatRoom | null>{
+        try{
+            return await userRepository.createChatRoom(userId,receiverId)
+        }catch(error){
+            console.log("Error getAllMessage:",error)
+            throw error
+        }
+     }
+     async getUpdateProfileImage(userId:string,imageUrl:string): Promise<IUser | null>{
+        try{
+            return await userRepository.updateProfileImage(userId,imageUrl)
+        }catch(error){
+            console.log("Error getUpdateProfileImage:",error)
+            throw error
+        }
+     }
+     async getCheckRequest(userId:string,bookId:string): Promise<Boolean>{
+        try{
+            return await userRepository.findCheckRequest(userId,bookId)
+        }catch(error){
+            console.log("Error getUpdateProfileImage:",error)
+            throw error
+        }
+     }
+     
+     async getCheckAccepted(userId:string,bookId:string): Promise<Boolean>{
+        try{
+            return await userRepository.findCheckAccept(userId,bookId)
+        }catch(error){
+            console.log("Error getUpdateProfileImage:",error)
+            throw error
+        }
+     }
+
+     async getSaveToken (userId:string,resetToken:string,resetTokenExpiration:number){
+        try{
+            return await userRepository.saveToken(userId,resetToken,resetTokenExpiration)
+        }catch(error){
+            console.log("Error saveToken:",error)
+        }
+     }
+     
+     async getUpdateIsGoogle(gmail:string){
+        try{
+            return await userRepository.updateIsGoogle(gmail)
+        }catch(error){
+            console.log("Error getUpdateIsGoogle:",error)
+            throw error
+        }
+     }
 }
 
+
 // const getUpdateUser = async (
-//     userId:string,name:string,email:string,phone:string,city:string,district:string,state:string,pincode:string,address:string,image:string|null) => {
+//     userId:string,name:string,email:string,phone:string,city:string,district:string,state:string,address:string,image:string|null) => {
 //     try{
 //       const updatedUser = await userRepository.findUpdateUser(
 //         userId,
@@ -158,7 +232,6 @@ export class UserService{
 //         city,
 //         district,
 //         state,
-//         pincode,
 //         address,
 //         image);
 //       return updatedUser

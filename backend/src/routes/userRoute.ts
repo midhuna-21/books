@@ -1,5 +1,5 @@
 import { signUp ,generateOtp, loginUser, verifyEmail, verifyOtp,updatePassword,sellBook, rentBook,logoutUser,loginByGoogle,updateUser,bookDetail,
-   genresOfBooks,books,genres,sendNotification,notifications,
+   genresOfBooks,books,genres,sendNotification,notifications,updateProfileImage,deleteUserImage,getUser,createChatRoom,checkUserSent,checkAccept,sendUnlinkEmail
 } from '../controllers/userController';
 import express from 'express'
 import upload from '../utils/imageFunctions/store';
@@ -18,7 +18,7 @@ userRouter.post('/google-login',loginByGoogle)
 
 userRouter.post('/check-email',verifyEmail)
 
-userRouter.post('/verify-otp',verifyOtp)
+userRouter.post('/verify-otp',verifyOtp)  
 
 userRouter.post('/update-password',updatePassword) 
 
@@ -34,14 +34,31 @@ userRouter.get('/books/:userId',verifyToken,books)
 
 userRouter.get('/book/:Id',verifyToken,bookDetail)
 
-userRouter.put('/update-profile',verifyToken,upload.single('image'),updateUser)  
+userRouter.put('/update-profile',verifyToken,updateUser)  
 
+userRouter.put('/update-profile-image',verifyToken,upload.single('selectedImage'),updateProfileImage)  
 
 userRouter.post('/notification',verifyToken,sendNotification)
 
 userRouter.get('/notifications',verifyToken,notifications)
 
+// userRouter.post('/create-message',verifyToken,messageCreation)
+
+// userRouter.get('/user-messages/:userId',verifyToken,allMessages)
+
+ userRouter.post('/create-chatRoom',verifyToken,createChatRoom)
+
+userRouter.get('/user/:receiverId',verifyToken,getUser)
+
+userRouter.post('/send-email',verifyToken,sendUnlinkEmail)
+
+userRouter.get('/check-request/:userId/:bookId', verifyToken, checkUserSent);
+userRouter.get('/check-accept/:userId/:bookId', verifyToken, checkAccept);
+
+
 userRouter.post('/logout',logoutUser) 
+
+userRouter.delete('/delete-profile-image',verifyToken,deleteUserImage)
 
 // router.post('/add-book',multerUpload,addbook)
 

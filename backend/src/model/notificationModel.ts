@@ -1,12 +1,13 @@
+import { ObjectId } from "mongodb";
 import mongoose,{Document,Types} from "mongoose";
 
 interface INotification extends Document{
-   userId?: string;
-   receiverId?: string;
-   bookId?:string;
-   type:string;
+   userId?: ObjectId;
+   receiverId?: ObjectId;
+   bookId?:ObjectId;
+   type?:string;
    content?: string;
-   isRead?:boolean;
+   isReject?:boolean;
    isAccepted?:boolean;
    createdAt?:Date;
    updatedAt?:Date;
@@ -32,7 +33,7 @@ const notificationSchema = new mongoose.Schema({
       type:String,
       required:true
    },
-   isRead:{
+   isReject:{
       type:Boolean,
       default:false
    },

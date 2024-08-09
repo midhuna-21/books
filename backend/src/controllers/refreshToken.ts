@@ -34,6 +34,7 @@ const refreshTokenController = async (req: Request, res: Response) => {
         let user;
         if (userRole === "user") {
             user = await userService.getUserById(decoded.userId);
+    
         } else if (userRole === "admin") {
             user = await adminService.getAdminById(decoded.userId);
         } else {

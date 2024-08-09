@@ -1,13 +1,23 @@
 import { user, IUser } from "../model/userModel";
 import { admin } from "../model/adminModel";
 import { userData } from "../utils/ReuseFunctions/interface/data";
-import { User } from "../interfaces/data";
+import {User,ChatRoom } from "../interfaces/data";
 import { Books } from "../interfaces/data";
 import { books, IBooks } from "../model/bookModel";
 import mongoose from "mongoose";
 import { genres } from "../model/genresModel";
 import { notification, INotification } from "../model/notificationModel";
 import { Notification } from "../interfaces/data";
+import {
+    GetObjectCommand,
+    GetObjectCommandInput,
+
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import config from "../config/config";
+import { s3Client } from "../utils/imageFunctions/store";
+import {IMessage } from "../model/message";
+import {chatRoom,IChatRoom} from '../model/chatRoom'
 // import { books } from "../controllers/userController";
 
 export class UserRepository {
@@ -96,11 +106,12 @@ export class UserRepository {
         }
     }
     async findUserById(_id: string): Promise<IUser | null> {
-        try {
-            const users = await user.findById(_id);
-            return users;
+        try {    
+            
+            return await user.findById(_id);
+         
         } catch (error) {
-            console.log("Error findAdminById:", error);
+            console.log("Error findUserById:", error);
             throw error;
         }
     }
@@ -120,33 +131,35 @@ export class UserRepository {
             throw error;
         }
     }
-    async updateUser(data: User): Promise<IUser | null> {
+    async updateUser(userId:string,filteredUser: User): Promise<IUser | null> {
         try {
-            const email = data.email;
-            const userToUpdate: IUser | null = await user.findOne({
-                email: email,
-            });
+           
+            const userToUpdate: IUser | null = await this.findUserById(userId)
 
             if (!userToUpdate) {
                 console.log("Error finding the user to update:");
                 return null;
+            }else{
+                
+                console.log(filteredUser,'filteredUser')
+                const updatedUser= await user.findByIdAndUpdate({_id:userId},{
+                    name: filteredUser.name || userToUpdate.name,
+                    email: filteredUser.email || userToUpdate.email,
+                    phone: filteredUser.phone || userToUpdate.phone,
+                    city: filteredUser.city || userToUpdate.city,
+                    district: filteredUser.district || userToUpdate.district,
+                    state: filteredUser.state || userToUpdate.state,
+              
+                },{new:true}
+            )
+                if (!updatedUser) {
+                console.log("Error updating the user:");
+                return null;
             }
-            const userId = userToUpdate._id;
-            return await user.findByIdAndUpdate(
-                userId,
-                {
-                    name: data.name || userToUpdate.name,
-                    email: data.email || userToUpdate.email,
-                    phone: data.phone || userToUpdate.phone,
-                    city: data.city || userToUpdate.city,
-                    district: data.district || userToUpdate.district,
-                    state: data.state || userToUpdate.state,
-                    pincode: data.pincode || userToUpdate.pincode,
-                    address: data.address || userToUpdate.address,
-                    image: data.image || userToUpdate.image,
-                },
-                { new: true }
-            );
+
+            console.log('Updated user:', updatedUser);
+            return updatedUser;
+            }
         } catch (error) {
             console.log("Error findAllGenres:", error);
             throw error;
@@ -171,13 +184,40 @@ export class UserRepository {
             throw error;
         }
     }
-    async findBook(bookId: string) {
+    async findBook(bookId: string): Promise<IBooks | null> {
         try {
-            return await books.findById(bookId);
+            const book:IBooks | null = await books.findById(bookId);
+            if (!book) {
+                console.log(`Book with ID ${bookId} not found.`);
+                return null;
+            }
+    
+                if (book.images && Array.isArray(book.images)) {
+                    const imageUrls = await Promise.all(
+                        book.images.map(async (imageKey: string) => {
+                            const getObjectParams: GetObjectCommandInput = {
+                                Bucket: config.BUCKET_NAME,
+                                Key: imageKey,
+                                
+                            };
+                            const command = new GetObjectCommand(getObjectParams);
+                            return await getSignedUrl(s3Client, command, {
+                                expiresIn: 3600,
+                            });
+                        })
+                    );
+                    book.images = imageUrls;
+                } else {
+                    book.images = [];
+                }
+    
+            return book
         } catch (error: any) {
             console.log("Error findBook:", error);
+            throw error
         }
     }
+
     async createNotification(
         data: Partial<Notification>
     ): Promise<INotification | null> {
@@ -198,9 +238,8 @@ export class UserRepository {
         try {
             const notifications =  await notification.find({ receiverId: new mongoose.Types.ObjectId(userId) })
             .populate('userId')
-            .populate('receiverId', 'name email phone')
-            .populate('bookId', 'bookTitle description images author genre publisher publishedYear rentalFee');
-            console.log(notifications,'usernotifications')
+            .populate('receiverId')
+            .populate('bookId');
             return notifications
         } catch (error) {
           console.log("Error notificationsByUserId:", error);
@@ -216,4 +255,89 @@ export class UserRepository {
           throw error;
        }
     };
+
+    async createChatRoom(userId:string,receiverId:string): Promise<IChatRoom | null> {
+        try {
+            return new chatRoom({
+                 userId,
+                 receiverId,
+            }).save();
+        } catch (error) {
+            console.log("Error createMessage:", error);
+            throw error;
+        }
+    }
+
+    // async messages(userId:string): Promise<IMessage[] | null>{
+    //     try{
+           
+    //          return messages
+    //     }catch(error){
+    //         console.log("Error messages:",error)
+    //         throw error
+    //     }
+    // }
+
+    async updateProfileImage(userId:string,imageUrl:string): Promise<IUser | null> {
+        try{
+            return await user.findByIdAndUpdate(userId,{image:imageUrl},{new:true})
+           
+        }catch(error){
+            console.log("Error updateProfileImage:",error)
+            throw error
+        }
+    }
+
+    async deleteUserImage(userId:string):Promise<IUser | null>{
+        try{
+            return await user.findByIdAndUpdate(userId,{$unset: {image: ""}},{new:true});
+        }catch(error){
+            console.log("Error deleteUserImage:",error)
+            throw error
+        }
+    }
+
+    async findCheckRequest(userId: string, bookId: string): Promise<boolean> {
+        try {
+            console.log(userId,'userdi')
+            console.log(bookId,'bookId')
+            const existingRequest = await notification.find({ userId:userId, bookId:bookId ,type:"Request"});
+            console.log(existingRequest,'existingRequest')
+            return existingRequest.length>0;
+        } catch (error) {
+            console.log("Error getCheckRequest:", error);
+            throw error;
+        }
+    }
+
+    async findCheckAccept(userId: string, bookId: string): Promise<boolean> {
+        try {
+            console.log(userId,'userdi')
+            console.log(bookId,'bookId')
+            const existingAccepted = await notification.find({ userId:userId, bookId:bookId ,type:"Accepted"});
+            console.log(existingAccepted,'existingAccepted')
+            return existingAccepted.length>0;
+        } catch (error) {
+            console.log("Error getCheckRequest:", error);
+            throw error;
+        }
+    }
+    async saveToken(userId:string,resetToken:string,resetTokenExpiration:number){
+        try{
+            return await user.findByIdAndUpdate(userId,{resetToken,resetTokenExpiration},{new:true})
+        }catch(error){
+            console.log('Error saveToken:',error)
+            throw error
+        }
+    }
+    async updateIsGoogle(gmail:string){
+        try{
+            const update = await user.findOneAndUpdate({email:gmail},{isGoogle:false},{new:true})
+            console.log(update,'update')
+            return update
+        }catch(error){
+            console.log("Error updateIsGoogle:",error)
+            throw error
+        }
+    }
 }

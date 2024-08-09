@@ -68,7 +68,7 @@ export class AdminService{
       try{
           return await adminRepository.findAdminById(_id)
       }catch(error){
-          console.log("Error getUserById:",error);
+          console.log("Error getAdminById:",error);
           throw error
       }
   }

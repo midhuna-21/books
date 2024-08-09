@@ -14,7 +14,9 @@ interface IUser extends Document {
     city?:string;
     district?:string;
     state?:string;
-    pincode?:string;
+    resetToken?:string;
+    resetTokenExpiration?:number;
+
 }
 const userSchema = new mongoose.Schema({
     name: {
@@ -57,8 +59,11 @@ const userSchema = new mongoose.Schema({
     state:{
         type:String
     },
-    pincode:{
-        type:String 
+    resetToken:{
+        type:String
+    },
+    resetTokenExpiration:{
+        type:Number
     },
     
 },{timestamps:true});
